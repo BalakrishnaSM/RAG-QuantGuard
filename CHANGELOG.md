@@ -19,8 +19,8 @@ Packaging release. No code/API changes.
 - Filled in `authors`, `keywords`, `classifiers`, and `project.urls` in
   `pyproject.toml` (previously entirely absent) so the PyPI project page
   shows an author, is findable via PyPI search, and links back to the
-  repo/changelog/issue tracker. `urls` still point at placeholder GitHub
-  URLs pending a real repo location.
+  repo (`https://github.com/BalakrishnaSM/RAG-QuantGuard`),
+  changelog, and issue tracker.
 - Added an "Installation" section to the README with the actual
   `pip install rag-quantguard` command, since previously the README only
   documented the local editable-install workflow.

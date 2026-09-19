@@ -30,10 +30,10 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/your-username/rag-quantguard"
-Repository = "https://github.com/your-username/rag-quantguard"
-Changelog = "https://github.com/your-username/rag-quantguard/blob/main/CHANGELOG.md"
-Issues = "https://github.com/your-username/rag-quantguard/issues"
+Homepage = "https://github.com/BalakrishnaSM/RAG-QuantGuard"
+Repository = "https://github.com/BalakrishnaSM/RAG-QuantGuard"
+Changelog = "https://github.com/BalakrishnaSM/RAG-QuantGuard/blob/main/CHANGELOG.md"
+Issues = "https://github.com/BalakrishnaSM/RAG-QuantGuard/issues"
 
 [project.scripts]
 quantguard = "quantguard.cli:main"
