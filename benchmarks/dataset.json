@@ -1,0 +1,156 @@
+[
+  {
+    "id": "pct_mismatch",
+    "category": "percentage",
+    "generated_text": "The completion rate was 37%.",
+    "source_chunks": ["Completion rate: 33%."],
+    "expected_valid": false
+  },
+  {
+    "id": "pct_match",
+    "category": "percentage",
+    "generated_text": "The completion rate was 33%.",
+    "source_chunks": ["Completion rate: 33%."],
+    "expected_valid": true
+  },
+  {
+    "id": "rounding_ok",
+    "category": "rounding",
+    "generated_text": "Latency was reduced to 12ms.",
+    "source_chunks": ["Latency achieved was 12.4ms."],
+    "expected_valid": true
+  },
+  {
+    "id": "unit_conversion_km_m",
+    "category": "unit_conversion",
+    "generated_text": "The distance was 5 km.",
+    "source_chunks": ["Measured distance: 5000 m."],
+    "expected_valid": true
+  },
+  {
+    "id": "spec_section_mismatch",
+    "category": "technical_reference",
+    "generated_text": "This is defined in 3GPP TS 38.331 Section 5.3.5.4.",
+    "source_chunks": ["See 3GPP TS 38.331 Section 5.3.5.5 for details."],
+    "expected_valid": false
+  },
+  {
+    "id": "spec_section_match",
+    "category": "technical_reference",
+    "generated_text": "This is defined in 3GPP TS 38.331 Section 5.3.5.4.",
+    "source_chunks": ["See 3GPP TS 38.331 Section 5.3.5.4 for details."],
+    "expected_valid": true
+  },
+  {
+    "id": "entity_swap",
+    "category": "entity_binding",
+    "generated_text": "User A paid $20.",
+    "source_chunks": ["User A paid $10.", "User B paid $20."],
+    "expected_valid": false
+  },
+  {
+    "id": "entity_correct",
+    "category": "entity_binding",
+    "generated_text": "User B paid $20.",
+    "source_chunks": ["User A paid $10.", "User B paid $20."],
+    "expected_valid": true
+  },
+  {
+    "id": "temporal_mismatch",
+    "category": "temporal",
+    "generated_text": "Latency in 2024 was 12ms.",
+    "source_chunks": ["2024 value = 25ms.", "2025 value = 12ms."],
+    "expected_valid": false
+  },
+  {
+    "id": "temporal_correct",
+    "category": "temporal",
+    "generated_text": "Latency in 2025 was 12ms.",
+    "source_chunks": ["2024 value = 25ms.", "2025 value = 12ms."],
+    "expected_valid": true
+  },
+  {
+    "id": "temporal_bound_mismatch",
+    "category": "temporal",
+    "generated_text": "In 2024, error rate was under 5%.",
+    "source_chunks": ["2024 saw major changes.", "2025 error rate was 3%, well under the 5% target."],
+    "expected_valid": false
+  },
+  {
+    "id": "temporal_range_mismatch",
+    "category": "temporal",
+    "generated_text": "In 2024, latency was between 10 and 20ms.",
+    "source_chunks": ["2024 saw a major rollout.", "2025 latency was 15ms, comfortably between the 10 and 20ms targets."],
+    "expected_valid": false
+  },
+  {
+    "id": "range_contradiction",
+    "category": "range",
+    "generated_text": "Latency was between 10 and 20ms.",
+    "source_chunks": ["Latency measured at 25ms."],
+    "expected_valid": false
+  },
+  {
+    "id": "range_match",
+    "category": "range",
+    "generated_text": "Latency was between 10 and 20ms.",
+    "source_chunks": ["Latency measured at 15ms."],
+    "expected_valid": true
+  },
+  {
+    "id": "bound_violation",
+    "category": "bound",
+    "generated_text": "Latency was under 50ms.",
+    "source_chunks": ["Latency measured at 62ms."],
+    "expected_valid": false
+  },
+  {
+    "id": "bound_satisfied",
+    "category": "bound",
+    "generated_text": "Latency was under 50ms.",
+    "source_chunks": ["Latency measured at 12ms."],
+    "expected_valid": true
+  },
+  {
+    "id": "scale_error",
+    "category": "percentage",
+    "generated_text": "Uptime was 95%.",
+    "source_chunks": ["Uptime recorded: 59%."],
+    "expected_valid": false
+  },
+  {
+    "id": "arithmetic_total_match",
+    "category": "arithmetic",
+    "generated_text": "There were 484 tasks in total.",
+    "source_chunks": ["262 completed, 197 not started, 22 in progress, 3 on hold."],
+    "expected_valid": true
+  },
+  {
+    "id": "arithmetic_total_mismatch",
+    "category": "arithmetic",
+    "generated_text": "There were 500 tasks in total.",
+    "source_chunks": ["262 completed, 197 not started, 22 in progress, 3 on hold."],
+    "expected_valid": false
+  },
+  {
+    "id": "derived_percentage_match",
+    "category": "derived_percentage",
+    "generated_text": "54.1% of tasks were completed.",
+    "source_chunks": ["262 completed out of 484 total tasks."],
+    "expected_valid": true
+  },
+  {
+    "id": "derived_percentage_mismatch",
+    "category": "derived_percentage",
+    "generated_text": "71% of tasks were completed.",
+    "source_chunks": ["262 completed out of 484 total tasks."],
+    "expected_valid": false
+  },
+  {
+    "id": "no_evidence",
+    "category": "unsupported",
+    "generated_text": "Latency was 12ms.",
+    "source_chunks": ["This document says nothing about timing."],
+    "expected_valid": false
+  }
+]

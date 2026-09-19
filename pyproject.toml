@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-quantguard"
+version = "0.2.3"
+description = "Deterministic, unit-aware structured-claim verification for RAG systems."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+# TODO: update the urls below once you have a real GitHub repo -- I don't
+# know your GitHub username, so these are still placeholders. Everything
+# else here is filled in.
+authors = [
+    { name = "Balakrishna S M", email = "balakrishnasm45@gmail.com" },
+]
+keywords = ["rag", "llm", "hallucination", "fact-checking", "verification", "retrieval-augmented-generation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Linguistic",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/your-username/rag-quantguard"
+Repository = "https://github.com/your-username/rag-quantguard"
+Changelog = "https://github.com/your-username/rag-quantguard/blob/main/CHANGELOG.md"
+Issues = "https://github.com/your-username/rag-quantguard/issues"
+
+[project.scripts]
+quantguard = "quantguard.cli:main"
+
+[project.optional-dependencies]
+# Core library has zero required dependencies -- everything below is
+# opt-in, matching the "compute first" philosophy: don't make a user
+# of the deterministic engine install a web framework or an LLM SDK
+# they'll never call.
+dev = ["pytest>=8.0"]
+langchain = ["langchain-core>=0.3"]
+llamaindex = ["llama-index-core>=0.11"]
+otel = ["opentelemetry-api>=1.20", "opentelemetry-sdk>=1.20"]
+nli = ["transformers>=4.40"]
+all = [
+    "langchain-core>=0.3",
+    "llama-index-core>=0.11",
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+    "transformers>=4.40",
+]
+
+[tool.setuptools.packages.find]
+include = ["quantguard*"]

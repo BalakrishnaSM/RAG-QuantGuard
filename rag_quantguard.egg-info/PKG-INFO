@@ -1,0 +1,346 @@
+Metadata-Version: 2.4
+Name: rag-quantguard
+Version: 0.2.3
+Summary: Deterministic, unit-aware structured-claim verification for RAG systems.
+Author-email: Balakrishna S M <balakrishnasm45@gmail.com>
+License-Expression: MIT
+Project-URL: Homepage, https://github.com/your-username/rag-quantguard
+Project-URL: Repository, https://github.com/your-username/rag-quantguard
+Project-URL: Changelog, https://github.com/your-username/rag-quantguard/blob/main/CHANGELOG.md
+Project-URL: Issues, https://github.com/your-username/rag-quantguard/issues
+Keywords: rag,llm,hallucination,fact-checking,verification,retrieval-augmented-generation
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Text Processing :: Linguistic
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pytest>=8.0; extra == "dev"
+Provides-Extra: langchain
+Requires-Dist: langchain-core>=0.3; extra == "langchain"
+Provides-Extra: llamaindex
+Requires-Dist: llama-index-core>=0.11; extra == "llamaindex"
+Provides-Extra: otel
+Requires-Dist: opentelemetry-api>=1.20; extra == "otel"
+Requires-Dist: opentelemetry-sdk>=1.20; extra == "otel"
+Provides-Extra: nli
+Requires-Dist: transformers>=4.40; extra == "nli"
+Provides-Extra: all
+Requires-Dist: langchain-core>=0.3; extra == "all"
+Requires-Dist: llama-index-core>=0.11; extra == "all"
+Requires-Dist: opentelemetry-api>=1.20; extra == "all"
+Requires-Dist: opentelemetry-sdk>=1.20; extra == "all"
+Requires-Dist: transformers>=4.40; extra == "all"
+Dynamic: license-file
+
+# QuantGuard
+
+**Deterministic, unit-aware structured-claim verification for RAG systems.**
+
+> Verify what can be computed. Escalate only what requires semantic reasoning.
+
+A RAG system can retrieve the *correct* evidence and still generate an *incorrect*
+quantitative claim — a wrong number, the right number attached to the wrong entity, a
+number for the wrong year, a citation to the wrong clause. Asking an LLM "is this
+answer correct?" is slow, costs a model call, and is often worse than useless at
+exactly this kind of check — LLM judges are notoriously bad at telling that `37%`
+contradicts `33%`, or that clause `5.3.5.4` isn't clause `5.3.5.5`.
+
+QuantGuard checks these claims **mathematically instead**, with zero LLM calls in the
+common case:
+
+```python
+from quantguard import QuantitativeGuard
+
+guard = QuantitativeGuard(tolerance=0.05)
+
+result = guard.verify(
+    generated_text="Latency was reduced to 18ms per 3GPP TS 38.331 Section 5.3.5.4.",
+    source_chunks=["Latency achieved was 12.4ms (3GPP TS 38.331 Section 5.3.5.4)."],
+)
+
+result.is_valid          # False
+result.status_counts     # {"CONTRADICTED": 1, "VERIFIED": 1}
+result.to_dict()          # JSON-serializable, with a full trace per claim
+```
+
+## Installation
+
+```bash
+pip install rag-quantguard
+```
+
+The core has zero required dependencies. The import name is `quantguard` (the PyPI
+distribution is named `rag-quantguard` because `quantguard` was already taken), so
+usage always looks like `from quantguard import QuantitativeGuard`, regardless of how
+it was installed. Optional integrations (LangChain, LlamaIndex, OpenTelemetry, an
+NLI-based fallback) are pulled in via extras -- see [v0.2: everything above the
+deterministic core](#v02-everything-above-the-deterministic-core) below.
+
+To work on QuantGuard itself instead of just using it:
+
+```bash
+git clone <this-repo>
+cd rag-quantguard
+pip install -e ".[dev]"   # editable install + pytest
+pytest                     # run the test suite
+python benchmarks/run_benchmark.py
+```
+
+
+## What it verifies
+
+| Claim type | Example | Handles |
+|---|---|---|
+| Numbers | `Latency was 12ms` | exact + rounding-aware tolerance |
+| Percentages | `94.3% accuracy` | as a first-class unit |
+| Unit-aware values | `5 km` vs `5000 m` | normalizes across compatible units |
+| Ranges | `between 10 and 20ms` | inside/outside checks |
+| Bounds | `under 50ms`, `at least 95%` | inequality checks |
+| Arithmetic totals | `484 tasks` vs `262+197+22+3` | subset-sum search over evidence |
+| Derived percentages | `54.1%` vs `262/484` | part/whole search over evidence |
+| Technical references | `3GPP TS 38.331 §5.3.5.4` | organization/document/section matching |
+
+## The anti-bug principle
+
+QuantGuard never concludes a claim is true merely because the same number exists
+*somewhere* in the source:
+
+```python
+guard.verify(
+    "User A paid $20.",
+    ["User A paid $10.", "User B paid $20."],
+)
+# CONTRADICTED -- User A actually paid $10; $20 belongs to User B.
+```
+
+```python
+guard.verify(
+    "Latency in 2024 was 12ms.",
+    ["2024 value = 25ms.", "2025 value = 12ms."],
+)
+# CONTRADICTED -- 12ms is real, but it's 2025's value, not 2024's.
+```
+
+This works via lightweight entity/context binding and temporal-context matching during
+evidence ranking (`quantguard/evidence.py`), not just numeric proximity.
+
+## Benchmark
+
+`benchmarks/run_benchmark.py` compares QuantGuard against a naive baseline that only
+checks whether a claim's numeric substring appears anywhere in the source text (the
+failure mode this library exists to fix), across 22 cases spanning every claim type
+above:
+
+```
+QuantGuard accuracy : 22/22 = 100.0%
+Naive accuracy      : 14/22 = 63.6%
+QuantGuard p50 latency : ~0.2 ms
+API cost             : $0 (no LLM call in the deterministic path)
+```
+
+No LLM-judge comparison is included: this was built without access to a hosted model
+to call as a judge, and only measured numbers are published here, per the project's
+own "compute first" philosophy — an estimated comparison would undercut the point.
+
+## Result taxonomy
+
+Every claim resolves to one of six statuses, never a bare `True`/`False`:
+
+- `VERIFIED` — exact match (within representation/rounding precision)
+- `APPROXIMATE` — within configured tolerance, not exact
+- `CONTRADICTED` — evidence exists and disagrees
+- `UNSUPPORTED` — no relevant evidence found
+- `AMBIGUOUS` — multiple evidence candidates disagree and neither is clearly preferred
+- `NOT_APPLICABLE` — claim kind has no deterministic strategy (reserved for a future
+  semantic/NLI fallback stage; not reachable in v0.1, since extraction only produces
+  structured, computable claims)
+
+Every `VerificationResult` carries a `trace: list[str]` explaining the decision step by
+step, and the whole result is JSON-serializable via `.to_dict()`.
+
+## Design choices worth knowing about
+
+- **Two tolerances, not one.** `verification_tolerance` (default 5%) is for noisy
+  real-world measurements. `arithmetic_tolerance` (default 0.5%) is for exact
+  arithmetic identities (a claimed total, a claimed part/whole percentage) — these
+  should only tolerate floating-point/display rounding, not several percent of slack.
+  Conflating the two would let a claim like "500 tasks" pass against a true total of
+  484 (a 3.3% gap) just because it's under a 5% *measurement* tolerance, even though
+  500 is simply wrong, not a rounding of 484.
+- **GB and GiB are different dimensions, on purpose.** `data_decimal` (KB/MB/GB/TB,
+  1000-based) and `data_binary` (KiB/MiB/GiB/TiB, 1024-based) are never silently
+  reconciled — the units API treats them as incompatible, matching the design
+  principle against conflating the two conventions.
+- **The arithmetic/derived-value rescue only reports a contradiction when there's a
+  confirmed anchor to a relevant chunk.** When no directly-typed evidence exists at
+  all (an `UNSUPPORTED` claim), the rescue only upgrades the result to a positive
+  match (`VERIFIED`/`APPROXIMATE`) — it will not report a `CONTRADICTED` computed
+  from an *unconfirmed* chunk, because that risks citing an unrelated chunk's numbers
+  as if they were relevant. This trades recall for precision by design: a real gap
+  here (distinguishing "this chunk happens to be on-topic" from "this chunk is
+  coincidentally numeric") is exactly the kind of judgment call the optional NLI/LLM
+  fallback stage exists for, not something the deterministic engine should guess at.
+- **Entity binding is a lightweight heuristic, not a parser.** Subject/context binding
+  looks at nearby words in the same sentence, with a case-sensitivity rule so
+  single-letter entity labels ("User A") don't collide with the article "a" once
+  lowercased — a real bug this implementation caught and fixed in its own dev
+  process (see `quantguard/claims.py`). A stronger dependency-parse-based resolver
+  (spaCy, kept optional) is the natural v0.2 upgrade.
+
+## v0.2: everything above the deterministic core
+
+The core (extraction, evidence, verification, arithmetic) has zero required
+dependencies. Everything below is opt-in via extras (`pip install "rag-quantguard[extra]"`)
+and lazily imported, so installing the core never pulls in a web framework or an LLM
+SDK you don't use.
+
+### Auto-correction
+
+```python
+result = guard.verify("Latency was 18ms, and there were 500 tasks in total.", sources)
+patched_text, patches = result.auto_correct()
+# "Latency was 12.4ms, and there were 484 tasks in total."
+```
+
+Only proposes a patch when there's exactly one clear evidence-backed replacement --
+never for `AMBIGUOUS` results, since picking between two equally-plausible values would
+be exactly the kind of guess this library exists to avoid. Also available as
+`result.patches` (list) and `result.patched_text` (str) directly on `GuardResult`.
+
+### CLI
+
+```bash
+pip install -e .   # registers the `quantguard` command
+quantguard verify answer.txt --sources sources.json [--json] [--verbose] [--fail-on-invalid]
+quantguard benchmark dataset.json
+```
+
+Stdlib-only (`argparse`) -- the CLI doesn't add a dependency the core doesn't already
+avoid.
+
+### NLI/LLM fallback for non-quantitative claims
+
+Structured claims (numbers, units, references) are handled deterministically. A
+sentence like "the new architecture improves reliability" isn't computable at all --
+`fallback_handler` routes exactly these (and only these) sentences to a pluggable
+handler:
+
+```python
+from quantguard.fallback.base import LexicalOverlapFallback
+
+guard = QuantitativeGuard(fallback_handler=LexicalOverlapFallback())
+result = guard.verify(
+    "Latency was 12.4ms, and this proves the system is now much more reliable.",
+    ["Latency achieved was 12.4ms.", "The new architecture improves reliability."],
+)
+```
+
+`LexicalOverlapFallback` is a real, working, dependency-free default -- word-overlap
+scoring plus a negation-mismatch check -- but it's a heuristic, not a real entailment
+model, and its confidence scores are capped accordingly. For production use, swap in
+a real model via the same protocol (`quantguard/fallback/nli.py` has documented
+adapter examples for a HuggingFace NLI pipeline or an arbitrary LLM call). Without a
+`fallback_handler` configured, semantic sentences are simply outside what QuantGuard
+checks, exactly as in v0.1.
+
+### Streaming verification
+
+```python
+from quantguard.streaming.verifier import verify_stream
+
+for event in verify_stream(guard, token_stream, source_chunks):
+    print(event.result.claim.raw_text, event.result.status.value)
+```
+
+Finalizes a claim only once it's stable across an iteration *and* has a settle margin
+of subsequent text -- a number built up token-by-token ("1", "8", "ms") resolves to
+one claim ("18ms"), not three premature ones. Flushes any pending claim when the
+stream ends.
+
+### LangChain
+
+```python
+from quantguard.integrations.langchain import QuantGuardRunnable
+
+verified_chain = rag_chain | QuantGuardRunnable(guard)  # expects {"answer", "context"}
+output = verified_chain.invoke({"input": "..."})
+output["quantguard_result"].is_valid
+```
+
+Composes directly onto a chain via LCEL's `|`; extracts `Document.page_content`
+automatically. `verify_langchain_output(guard, chain_output)` is available for a
+one-off check without permanently wiring it into the chain.
+
+### LlamaIndex
+
+```python
+from quantguard.integrations.llamaindex import verify_response, make_verifying_query_engine
+
+result = verify_response(guard, query_engine.query("..."))
+# or, to attach it automatically on every call:
+verified_engine = make_verifying_query_engine(query_engine, guard)
+response = verified_engine.query("...")
+response.quantguard_result.is_valid
+```
+
+### OpenTelemetry
+
+```python
+from quantguard.integrations.opentelemetry import InstrumentedGuard
+
+guard = InstrumentedGuard(QuantitativeGuard())
+result = guard.verify(answer, sources)  # same call, now traced
+```
+
+Emits one span (`quantguard.verify`) per call with claim-count/validity/per-status
+attributes, a span event for each CONTRADICTED/AMBIGUOUS/UNSUPPORTED claim (kept off
+VERIFIED/APPROXIMATE claims so event volume doesn't scale with every correct claim),
+and a `quantguard.claims.verified` counter metric labeled by status.
+
+## Project layout
+
+```
+quantguard/
+├── quantguard/
+│   ├── models.py            # Claim, Evidence, VerificationResult, Span, Status
+│   ├── units.py               # Unit tables + dimension-aware normalization
+│   ├── extraction.py           # Regex-based number/range/bound/reference extraction
+│   ├── claims.py                # Claim construction + entity/context/temporal binding
+│   ├── evidence.py                # Evidence extraction + candidate ranking
+│   ├── verification.py             # Exact/tolerance/bounds/range/reference comparison
+│   ├── arithmetic.py                # Subset-sum + derived-percentage verification
+│   ├── guard.py                       # QuantitativeGuard: the public orchestrator
+│   ├── cli.py                          # `quantguard verify` / `quantguard benchmark`
+│   ├── correction/patches.py            # Auto-correction (Patch, propose_patch)
+│   ├── fallback/                          # Optional NLI/LLM stage
+│   │   ├── base.py                          # FallbackHandler protocol + LexicalOverlapFallback
+│   │   └── nli.py                            # transformers/LLM adapter examples
+│   ├── streaming/verifier.py                   # verify_stream()
+│   └── integrations/                             # Optional framework glue
+│       ├── langchain.py
+│       ├── llamaindex.py
+│       └── opentelemetry.py
+├── tests/                 # 80 tests, including regression tests for real bugs found
+├── examples/basic_usage.py
+├── benchmarks/             # dataset.json + run_benchmark.py (vs. naive baseline)
+└── pyproject.toml
+```
+
+## Install
+
+```bash
+pip install -e ".[dev]"              # core + test tooling only
+pip install -e ".[all]"              # everything, for exercising every integration
+pip install -e ".[langchain]"        # just one extra, e.g. for LangChain users
+pytest
+python examples/basic_usage.py
+python benchmarks/run_benchmark.py
+quantguard verify examples_answer.txt --sources examples_sources.json
+```
