@@ -4,10 +4,10 @@ Version: 0.2.3
 Summary: Deterministic, unit-aware structured-claim verification for RAG systems.
 Author-email: Balakrishna S M <balakrishnasm45@gmail.com>
 License-Expression: MIT
-Project-URL: Homepage, https://github.com/your-username/rag-quantguard
-Project-URL: Repository, https://github.com/your-username/rag-quantguard
-Project-URL: Changelog, https://github.com/your-username/rag-quantguard/blob/main/CHANGELOG.md
-Project-URL: Issues, https://github.com/your-username/rag-quantguard/issues
+Project-URL: Homepage, https://github.com/BalakrishnaSM/RAG-QuantGuard
+Project-URL: Repository, https://github.com/BalakrishnaSM/RAG-QuantGuard
+Project-URL: Changelog, https://github.com/BalakrishnaSM/RAG-QuantGuard/blob/main/CHANGELOG.md
+Project-URL: Issues, https://github.com/BalakrishnaSM/RAG-QuantGuard/issues
 Keywords: rag,llm,hallucination,fact-checking,verification,retrieval-augmented-generation
 Classifier: Development Status :: 4 - Beta
 Classifier: Intended Audience :: Developers
